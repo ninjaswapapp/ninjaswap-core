@@ -17,3 +17,4 @@ Feel free to read the code.
 - NinjaRouter - https://www.bscscan.com/address/0x008Ea4e222B932D29171fD0E79c7430Bca37454e
 - NinjaBounty - https://www.bscscan.com/address/0xFA141BDe480D23fC8ebBe2B72621506499815067
 - BondingCurve - https://www.bscscan.com/address/0xA68E5F950b0f2f68Fc14A137dC962F5e77a86c88
+- NinjaMaster - https://www.bscscan.com/address/0x7E6B4d7C5f3276A4A18F74a4AaFbCC2cF755Bf97

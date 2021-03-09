@@ -1,7 +1,14 @@
-// File: @openzeppelin/contracts/utils/Context.sol
+/*
+███╗░░██╗██╗███╗░░██╗░░░░░██╗░█████╗░  ░██████╗░██╗░░░░░░░██╗░█████╗░██████╗░
+████╗░██║██║████╗░██║░░░░░██║██╔══██╗  ██╔════╝░██║░░██╗░░██║██╔══██╗██╔══██╗
+██╔██╗██║██║██╔██╗██║░░░░░██║███████║  ╚█████╗░░╚██╗████╗██╔╝███████║██████╔╝
+██║╚████║██║██║╚████║██╗░░██║██╔══██║  ░╚═══██╗░░████╔═████║░██╔══██║██╔═══╝░
+██║░╚███║██║██║░╚███║╚█████╔╝██║░░██║  ██████╔╝░░╚██╔╝░╚██╔╝░██║░░██║██║░░░░░
+╚═╝░░╚══╝╚═╝╚═╝░░╚══╝░╚════╝░╚═╝░░╚═╝  ╚═════╝░░░░╚═╝░░░╚═╝░░╚═╝░░╚═╝╚═╝░░░░░
 
- // SPDX-License-Identifier: MIT
-
+https://ninjaswap.app
+*/
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0 <0.8.0;
 
 /*
@@ -1041,7 +1048,7 @@ pragma solidity 0.6.12;
 
 
 
-contract MasterChef is Ownable {
+contract NinjaMaster is Ownable {
     uint256 public constant period1 = 180 days; // about 6 months
     uint256 public constant period2 = 365 days; // 1 year
     uint256 public constant period3 = 730 days;  // 2 years
