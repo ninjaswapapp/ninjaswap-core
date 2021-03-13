@@ -21,16 +21,6 @@ example
 curl --request GET
    --url https://api.ninjaswap.app/totalliquidity
 ```
-## get Total Liquidity in USD (TVL)
-
-[https://api.ninjaswap.app/tickers](https://api.ninjaswap.app/totalliquidity)
-
-example
-
-```text
-curl --request GET
-   --url https://api.ninjaswap.app/totalliquidity
-```
 
 ## get summary of all pairs
 
