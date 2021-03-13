@@ -1,4 +1,4 @@
-# CheeSwap REST API documentation
+# NinjaSwap REST API documentation
 
 ## get all tickers
 
