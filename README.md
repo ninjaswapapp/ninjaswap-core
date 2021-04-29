@@ -10,6 +10,7 @@ Feel free to read the code.
 
 ## [BSC Chain] Deployed Contracts
 
+
 - NinjaToken - https://www.bscscan.com/address/0x93e7567f277F353d241973d6f85b5feA1dD84C10
 - NinjaTeam - https://www.bscscan.com/address/0xDE80c9B965511ABc839824FFb04d8E843d54D7cb
 - NinjaAMO - https://www.bscscan.com/address/0xdeDD7a0f96a8d89B5336c66fCdFB29aa885F6aC3
@@ -18,3 +19,4 @@ Feel free to read the code.
 - NinjaBounty - https://www.bscscan.com/address/0xFA141BDe480D23fC8ebBe2B72621506499815067
 - BondingCurve - https://www.bscscan.com/address/0xA68E5F950b0f2f68Fc14A137dC962F5e77a86c88
 - NinjaMaster - https://www.bscscan.com/address/0x7E6B4d7C5f3276A4A18F74a4AaFbCC2cF755Bf97
+- XNinjaSwap - https://bscscan.com/address/0xe63969620aac596f68aee7fa1d795026bf27ff18
