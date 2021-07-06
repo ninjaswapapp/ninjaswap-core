@@ -1108,7 +1108,7 @@ contract XNinjaSwap is ERC20("XNinjaSwap", "XNINJA"), Ownable {
         current_minter = newMinter;
     }
     
-    function updateMinting(bool _status) public external onlyOwner {
+    function updateMinting(bool _status) external onlyOwner {
         allowedMinting = _status;
     }
 
