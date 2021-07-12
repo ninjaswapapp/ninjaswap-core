@@ -26,7 +26,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
     IStdReference internal ref;
-    uint256 testBNBprice = 287857100000000000000;
+
     //offering token
     IBEP20 public offeringToken;
 
@@ -75,7 +75,11 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
     //Amount of offering token bought each user
     mapping(address => uint256) public purchases;
 
-     event test(address user, uint256 amount, uint256 deposit);
+    //Burn Address 
+    address public burnAddress = 0x000000000000000000000000000000000000dEaD;
+
+    event purchased(address user, uint256 amount);
+    
     constructor(
         IBEP20 _offeringToken,
         IBEP20 _busd,
@@ -107,7 +111,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
         uint256 tokensToBePurchased = _getTokenAmount(bnbAmount);
         tokensToBePurchased = _verifyAmount(tokensToBePurchased);
         require(tokensToBePurchased > 0, "You've reached your limit of purchases");
-        uint256 cost = tokensToBePurchased.mul(buyPrice).div(testBNBprice);
+        uint256 cost = tokensToBePurchased.mul(buyPrice).div(getLatestBNBPrice());
         if (bnbAmount > cost) {
             (bool sent, ) = payable(msg.sender).call{value: msg.value - (cost)}("");
             require(sent);
@@ -118,20 +122,21 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
             totalSaleParticipants = totalSaleParticipants.add(1);
         }
         totalCollectedBNB = totalCollectedBNB.add(bnbAmount);
-         emit test(_beneficiary, tokensToBePurchased, bnbAmount);
         offeringToken.safeTransfer(address(msg.sender), tokensToBePurchased);
         totalSold = totalSold.add(tokensToBePurchased);
         bnbDeposits[msg.sender] = bnbDeposits[msg.sender].add(bnbAmount);
         purchases[msg.sender] = purchases[msg.sender].add(tokensToBePurchased);
+        emit purchased(_beneficiary, tokensToBePurchased);
     }
 
     function buyWithBusd(uint256 _amountBusd) public whenNotPaused {
         require(_amountBusd > 0, "Please Send some more BUSD");
         require(_preValidation(), "offering already finalized");
         uint256 tokensToBePurchased = _amountBusd.div(buyPrice);
+        tokensToBePurchased =  tokensToBePurchased.mul(10**18);
         tokensToBePurchased = _verifyAmount(tokensToBePurchased);
         require(tokensToBePurchased > 0, "You've reached your limit of purchases");
-        uint256 totalBusd = tokensToBePurchased.mul(buyPrice);
+        uint256 totalBusd = tokensToBePurchased.mul(buyPrice).div(10**18);
         BUSD.safeTransferFrom(address(msg.sender), address(this), totalBusd);
         // Update total sale participants
         if (busdDeposits[msg.sender] == 0) {
@@ -142,6 +147,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
         totalCollectedBUSD = totalCollectedBUSD.add(totalBusd);
         busdDeposits[msg.sender] = busdDeposits[msg.sender].add(totalBusd);
         purchases[msg.sender] = purchases[msg.sender].add(tokensToBePurchased);
+        emit purchased(msg.sender, tokensToBePurchased);
     }
 
     function getEstimatedTokensBuyWithBNB(uint256 _bnbAmount)
@@ -149,7 +155,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
         view
         returns (uint256)
     {
-        return _bnbAmount.mul(testBNBprice).div(buyPrice);
+        return _bnbAmount.mul(getLatestBNBPrice()).div(buyPrice);
     }
 
     function _preValidation() internal view returns (bool) {
@@ -167,7 +173,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
         require(!isEnded, "offering already finalized");
         uint256 balance = offeringToken.balanceOf(address(this));
         if (balance > 0) {
-            offeringToken.safeTransfer(address(0), balance);
+            offeringToken.safeTransfer(burnAddress, balance);
         }
         isEnded = true;
     }
@@ -177,7 +183,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
         view
         returns (uint256)
     {
-        return _bnbAmount.mul(testBNBprice).div(buyPrice);
+        return _bnbAmount.mul(getLatestBNBPrice()).div(buyPrice);
     }
 
     function _verifyAmount(uint256 _tokensAmount)

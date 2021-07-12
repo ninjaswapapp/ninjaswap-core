@@ -1,4 +1,4 @@
-const BigNumber = require('bignumber.js')
+// const BigNumber = require('bignumber.js')
 const BN = require('bn.js')
 const Web3 = require('web3')
 const { constants, utils } = require("ethers");
@@ -14,7 +14,7 @@ const {
 
 const chai = require('chai')
 chai.use(require('chai-as-promised'))
-chai.use(require('chai-bignumber')(BigNumber))
+// chai.use(require('chai-bignumber')(BigNumber))
 
 const expect = chai.expect
 
@@ -33,6 +33,7 @@ contract('NinjaStarter', (accounts) => {
   const feeAddress = accounts[2]
   const user = accounts[3];
   const buyerBnBCap = accounts[4];
+  const buyerBusdCap = accounts[5];
   before(async () => {
     ffToken = await MockERC20.new('FF Token', 'FFF', INIT_BALANCE, {
       from: ffOwner,
@@ -125,16 +126,53 @@ contract('NinjaStarter', (accounts) => {
   })
 
   it('Buy with 2 BNB due to limit 1 bnb should be return and bought tokens only 71964275000000000000 (71.964275)', async () => {
-    const balanceBefore = await web3.eth.getBalance(buyerBnBCap)
+    const balanceBefore = new BN(await web3.eth.getBalance(buyerBnBCap))
     const txInfo =  await ninjaStarter.buywithBNB(user, { from: buyerBnBCap, value: toWei('2') })
     const gasCost = await getGasCost(txInfo)
-    const balanceAfter = await web3.eth.getBalance(buyerBnBCap)
-    let oneBnb = new BigNumber(toWei('1'));
+    const balanceAfter = new BN(await web3.eth.getBalance(buyerBnBCap))
+    let oneBnb = new BN(toWei('1'));
     const bdiff = balanceBefore.sub(gasCost).sub(balanceAfter); 
     expect(bdiff.toString()).to.be.equal(
-        bdiff.toString(),
+        oneBnb.toString(),
     )
-
+      // 1 bnb and 71964275000000000000 tokens solds 
+  })
+  it('should revert buy due to buy limit reach', async () => {
+    await expectRevert(
+     ninjaStarter.buywithBNB(user, { from: buyerBnBCap, value: toWei('2') }),
+      "You've reached your limit of purchases",
+    )
+  })
+  it('set limit to 10 tokens and try to buy 20 tokens should return 40 busd', async () => {
+    await ninjaStarter.setBuyCap(toWei('10'), { from: Owner })
+    await busd.transfer(buyerBusdCap, toWei('80'), {
+      from: user,
+    })
+    await busd.approve(ninjaStarter.address, constants.MaxUint256, {
+      from: buyerBusdCap,
+    })
+    await ninjaStarter.buyWithBusd(toWei('80'), { from: buyerBusdCap })
+    var deposit = await ninjaStarter.busdDeposits.call(buyerBusdCap)
+    expect(deposit.toString()).to.be.equal(toWei('40').toString())
+  })
+  it('Do End Offering and should burn all remaining Tokens', async () => {
+    await ninjaStarter.endOffering( { from: Owner })
+    let afterBurnB = await ffToken.balanceOf.call(ninjaStarter.address); 
+    expect('0').to.be.equal(afterBurnB.toString())
   })
 
+  it('Do Final Withdraw balance should be receive correctly', async () => {
+    const BusdBalance = new BN(await busd.balanceOf.call(ninjaStarter.address));
+    const bnbBalance = new BN(await web3.eth.getBalance(ninjaStarter.address));
+    const busdFee = BusdBalance.mul(new BN('150')).div(new BN('10000'));
+    const bnbFee = bnbBalance.mul(new BN('150')).div(new BN('10000'));
+    const feeAddressBBBalance = new BN(await web3.eth.getBalance(feeAddress));
+    const ffownerBBBalance =  new BN(await web3.eth.getBalance(ffOwner));
+    await ninjaStarter.finalWithdraw( { from: Owner })
+    const ownerBusdB = new BN(await busd.balanceOf.call(ffOwner))
+    const feeAddbusdB =  new BN(await busd.balanceOf.call(feeAddress))
+    const ffownerBABalance =  new BN(await web3.eth.getBalance(ffOwner));
+    const feeAddressBABalance = new BN(await web3.eth.getBalance(feeAddress)); 
+    expect((BusdBalance.sub(busdFee)).toString()).to.be.equal(ownerBusdB.toString())
+  })
 })
