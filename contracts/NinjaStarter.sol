@@ -87,6 +87,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
         BUSD = _busd;
         tokenOwner = _tokenOwner;
         feeAddress = _feeAddress;
+        //ref = IStdReference(0xDA7a001b254CD22e46d3eAB04d937489c93174C3);
         ref = IStdReference(0xDA7a001b254CD22e46d3eAB04d937489c93174C3);
     }
 
@@ -136,7 +137,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
         uint256 totalBusd = tokensToBePurchased.mul(buyPrice).div(10**18);
         BUSD.safeTransferFrom(address(msg.sender), address(this), totalBusd);
         // Update total sale participants
-        if (busdDeposits[msg.sender] == 0 && bnbDeposits[_beneficiary] == 0) {
+        if (busdDeposits[msg.sender] == 0 && bnbDeposits[msg.sender] == 0) {
             totalSaleParticipants = totalSaleParticipants.add(1);
         }
         offeringToken.safeTransfer(address(msg.sender), tokensToBePurchased);

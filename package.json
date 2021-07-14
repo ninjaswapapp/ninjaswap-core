@@ -42,6 +42,7 @@
     "flat-NinjaBounty": "./node_modules/.bin/truffle-flattener ./contracts/NinjaBounty.sol > ./flat/NinjaBounty.sol",
     "flat-NinjaAMO": "./node_modules/.bin/truffle-flattener ./contracts/NinjaAMO.sol > ./flat/NinjaAMO.sol",
     "flat-BondingCurve": "./node_modules/.bin/truffle-flattener ./contracts/BondingCurve/BondingCurve.sol > ./flat/BondingCurve.sol",
-    "flat-MockERC20": "./node_modules/.bin/truffle-flattener ./contracts/MockERC20.sol > ./flat/MockERC20.sol"
+    "flat-MockERC20": "./node_modules/.bin/truffle-flattener ./contracts/MockERC20.sol > ./flat/MockERC20.sol",
+    "flat-NinjaStarter": "./node_modules/.bin/truffle-flattener ./contracts/NinjaStarter.sol > ./flat/NinjaStarter.sol"
   }
 }

@@ -637,12 +637,9 @@ contract ERC20 is Context, IERC20 {
 pragma solidity 0.6.12;
 
 contract MockERC20 is ERC20 {
-    constructor(
-        string memory name,
-        string memory symbol,
-        uint256 supply
-    ) public ERC20(name, symbol) {
-        _mint(msg.sender, supply);
+    constructor() public  ERC20('BinanceUSD', 'BUSD') {
+       
+        _mint(msg.sender, 100000 * 1e18);
     }
 
     function mint(address _to, uint256 _amount) public {
