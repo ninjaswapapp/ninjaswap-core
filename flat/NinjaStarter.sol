@@ -1,6 +1,6 @@
 // File: @openzeppelin/contracts/utils/Context.sol
 
- // SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 
 pragma solidity >=0.6.0 <0.8.0;
 
@@ -27,7 +27,7 @@ abstract contract Context {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
- 
+// SPDX-License-Identifier: MIT
 
 pragma solidity >=0.6.0 <0.8.0;
 
@@ -97,7 +97,7 @@ abstract contract Ownable is Context {
 
 // File: @openzeppelin/contracts/GSN/Context.sol
 
- 
+// SPDX-License-Identifier: MIT
 
 pragma solidity >=0.6.0 <0.8.0;
 
@@ -198,7 +198,7 @@ interface IBEP20 {
 
 // File: @openzeppelin/contracts/math/SafeMath.sol
 
- 
+// SPDX-License-Identifier: MIT
 
 pragma solidity >=0.6.0 <0.8.0;
 
@@ -415,7 +415,7 @@ library SafeMath {
 
 // File: contracts/libs/BEP20.sol
 
- 
+// SPDX-License-Identifier: MIT
 
 pragma solidity >=0.4.0;
 
@@ -715,7 +715,7 @@ contract BEP20 is Context, IBEP20, Ownable {
 
 // File: @openzeppelin/contracts/utils/Address.sol
 
- 
+// SPDX-License-Identifier: MIT
 
 pragma solidity >=0.6.2 <0.8.0;
 
@@ -907,7 +907,7 @@ library Address {
 
 // File: contracts/libs/SafeBEP20.sol
 
- 
+// SPDX-License-Identifier: MIT
 
 pragma solidity >=0.6.0 <0.8.0;
 
@@ -984,7 +984,7 @@ library SafeBEP20 {
 
 // File: @openzeppelin/contracts/utils/Pausable.sol
 
- 
+// SPDX-License-Identifier: MIT
 
 pragma solidity >=0.6.0 <0.8.0;
 
@@ -1076,7 +1076,7 @@ abstract contract Pausable is Context {
 
 // File: @openzeppelin/contracts/utils/ReentrancyGuard.sol
 
- 
+// SPDX-License-Identifier: MIT
 
 pragma solidity >=0.6.0 <0.8.0;
 
@@ -1141,7 +1141,7 @@ abstract contract ReentrancyGuard {
 
 // File: contracts/NinjaStarter.sol
 
- 
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
@@ -1273,8 +1273,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
     function buyWithBusd(uint256 _amountBusd) public whenNotPaused {
         require(_amountBusd > 0, "Please Send some more BUSD");
         require(_preValidation(), "offering already finalized");
-        uint256 tokensToBePurchased = _amountBusd.div(buyPrice);
-        tokensToBePurchased =  tokensToBePurchased.mul(10**18);
+        uint256 tokensToBePurchased = _amountBusd.mul(10**18).div(buyPrice);
         tokensToBePurchased = _verifyAmount(tokensToBePurchased);
         require(tokensToBePurchased > 0, "You've reached your limit of purchases");
         uint256 totalBusd = tokensToBePurchased.mul(buyPrice).div(10**18);

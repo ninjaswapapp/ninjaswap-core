@@ -130,8 +130,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
     function buyWithBusd(uint256 _amountBusd) public whenNotPaused {
         require(_amountBusd > 0, "Please Send some more BUSD");
         require(_preValidation(), "offering already finalized");
-        uint256 tokensToBePurchased = _amountBusd.div(buyPrice);
-        tokensToBePurchased =  tokensToBePurchased.mul(10**18);
+        uint256 tokensToBePurchased = _amountBusd.mul(10**18).div(buyPrice);
         tokensToBePurchased = _verifyAmount(tokensToBePurchased);
         require(tokensToBePurchased > 0, "You've reached your limit of purchases");
         uint256 totalBusd = tokensToBePurchased.mul(buyPrice).div(10**18);
