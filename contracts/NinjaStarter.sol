@@ -98,10 +98,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
         buywithBNB(msg.sender);
     }
 
-    function buywithBNB(address _beneficiary)
-        public
-        payable
-        whenNotPaused
+    function buywithBNB(address _beneficiary) public payable whenNotPaused nonReentrant
     {
         uint256 bnbAmount = msg.value;
         require(bnbAmount > 0, "Please send some more BNB");
@@ -111,9 +108,9 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
         require(tokensToBePurchased > 0, "You've reached your limit of purchases");
         uint256 cost = tokensToBePurchased.mul(buyPrice).div(getLatestBNBPrice());
         if (bnbAmount > cost) {
-            (bool sent, ) = payable(msg.sender).call{value: msg.value - (cost)}("");
-            require(sent);
-             bnbAmount = cost;
+            address payable refundAccount = payable(_beneficiary);
+	        refundAccount.transfer(bnbAmount.sub(cost));
+            bnbAmount = cost;
         }
         // Update total sale participants
         if (busdDeposits[msg.sender] == 0 && bnbDeposits[_beneficiary] == 0) {
@@ -127,7 +124,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
         emit purchased(_beneficiary, tokensToBePurchased);
     }
 
-    function buyWithBusd(uint256 _amountBusd) public whenNotPaused {
+    function buyWithBusd(uint256 _amountBusd) public whenNotPaused nonReentrant {
         require(_amountBusd > 0, "Please Send some more BUSD");
         require(_preValidation(), "offering already finalized");
         uint256 tokensToBePurchased = _amountBusd.mul(10**18).div(buyPrice);
