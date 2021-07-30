@@ -8,7 +8,7 @@
 
 https://ninjaswap.app
 */
-// Fundi FF Sale at ninjaSwap 
+// Creation CRA  Sale at ninjaSwap 
 // SPDX-License-Identifier: MIT
 
 pragma solidity >=0.6.0 <0.8.0;
@@ -1186,13 +1186,13 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
     IBEP20 public BUSD;
 
     // total amount of offeringToken that will offer
-    uint256 public offeringAmount = 4000 * 1e18;
+    uint256 public offeringAmount = 9000000 * 1e18;
 
     // limit on each address on buy
-    uint256 public buyCap = 20 * 1e18;
+    uint256 public buyCap = 10000 * 1e18;
 
     // offering token price in BUSD
-    uint256 public buyPrice = 4 * 1e18;
+    uint256 public buyPrice = 10000000000000000;
 
     // Time when the token sale closes
     bool public isEnded = false;
