@@ -2,20 +2,23 @@
 
 pragma solidity 0.6.12;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./XNinjaSwap.sol";
-import "./libs/IBEP20.sol";
-import "./libs/SafeBEP20.sol";
 
-// MasterChef is the master of Xninja. He can make Xninja and he is a fair guy.
+// XNinjaMaster is the master of XNINJA. He can make XNINJA and he is a fair guy.
 //
 // Note that it's ownable and the owner wields tremendous power. The ownership
 // will be transferred to a governance smart contract once XNINJA is sufficiently
 // distributed and the community can show to govern itself.
 //
-// Have fun reading it. Hopefully it's bug-free. God bless.
-contract MasterChef is Ownable {
+// Have fun reading it. Hopefully it's bug-free. XNINJA bless.
+contract XNinjaMaster is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
-    using SafeBEP20 for IBEP20;
+    using SafeERC20 for IERC20;
 
     // Info of each user.
     struct UserInfo {
@@ -25,10 +28,10 @@ contract MasterChef is Ownable {
         // We do some fancy math here. Basically, any point in time, the amount of XNINJAs
         // entitled to a user but is pending to be distributed is:
         //
-        //   pending reward = (user.amount * pool.accXninjaPerShare) - user.rewardDebt
+        //   pending reward = (user.amount * pool.accXNINJAPerShare) - user.rewardDebt
         //
         // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-        //   1. The pool's `accXninjaPerShare` (and `lastRewardBlock`) gets updated.
+        //   1. The pool's `accXNINJAPerShare` (and `lastRewardBlock`) gets updated.
         //   2. User receives the pending reward sent to his/her address.
         //   3. User's `amount` gets updated.
         //   4. User's `rewardDebt` gets updated.
@@ -36,18 +39,21 @@ contract MasterChef is Ownable {
 
     // Info of each pool.
     struct PoolInfo {
-        IBEP20 lpToken;           // Address of LP token contract.
+        IERC20 lpToken;           // Address of LP token contract.
         uint256 allocPoint;       // How many allocation points assigned to this pool. XNINJAs to distribute per block.
         uint256 lastRewardBlock;  // Last block number that XNINJAs distribution occurs.
-        uint256 accXninjaPerShare;   // Accumulated XNINJAs per share, times 1e12. See below.
+        uint256 accXNINJAPerShare;   // Accumulated XNINJAs per share, times 1e12. See below.
         uint16 depositFeeBP;      // Deposit fee in basis points
     }
 
     // The XNINJA TOKEN!
     XNinjaSwap public xninja;
+
+    // Dev address.
+    address public devaddr;
     // XNINJA tokens created per block.
     uint256 public xninjaPerBlock;
-    // Bonus muliplier for early xninja makers.
+    // Bonus multiplier for early xninja makers.
     uint256 public constant BONUS_MULTIPLIER = 1;
     // Deposit Fee address
     address public feeAddress;
@@ -64,14 +70,19 @@ contract MasterChef is Ownable {
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
+    event SetFeeAddress(address indexed user, address indexed newAddress);
+    event SetDevAddress(address indexed user, address indexed newAddress);
+    event UpdateEmissionRate(address indexed user, uint256 goosePerBlock);
 
     constructor(
         XNinjaSwap _xninja,
+        address _devaddr,
         address _feeAddress,
         uint256 _xninjaPerBlock,
         uint256 _startBlock
     ) public {
         xninja = _xninja;
+        devaddr = _devaddr;
         feeAddress = _feeAddress;
         xninjaPerBlock = _xninjaPerBlock;
         startBlock = _startBlock;
@@ -81,20 +92,26 @@ contract MasterChef is Ownable {
         return poolInfo.length;
     }
 
+    mapping(IERC20 => bool) public poolExistence;
+    modifier nonDuplicated(IERC20 _lpToken) {
+        require(poolExistence[_lpToken] == false, "nonDuplicated: duplicated");
+        _;
+    }
+
     // Add a new lp to the pool. Can only be called by the owner.
-    // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-    function add(uint256 _allocPoint, IBEP20 _lpToken, uint16 _depositFeeBP, bool _withUpdate) public onlyOwner {
+    function add(uint256 _allocPoint, IERC20 _lpToken, uint16 _depositFeeBP, bool _withUpdate) public onlyOwner nonDuplicated(_lpToken){
         require(_depositFeeBP <= 10000, "add: invalid deposit fee basis points");
         if (_withUpdate) {
             massUpdatePools();
         }
         uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
         totalAllocPoint = totalAllocPoint.add(_allocPoint);
+        poolExistence[_lpToken] = true;
         poolInfo.push(PoolInfo({
             lpToken: _lpToken,
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
-            accXninjaPerShare: 0,
+            accXNINJAPerShare: 0,
             depositFeeBP: _depositFeeBP
         }));
     }
@@ -116,17 +133,17 @@ contract MasterChef is Ownable {
     }
 
     // View function to see pending XNINJAs on frontend.
-    function pendingXninja(uint256 _pid, address _user) external view returns (uint256) {
+    function pendingXNINJA(uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 accXninjaPerShare = pool.accXninjaPerShare;
+        uint256 accXNINJAPerShare = pool.accXNINJAPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
             uint256 xninjaReward = multiplier.mul(xninjaPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accXninjaPerShare = accXninjaPerShare.add(xninjaReward.mul(1e12).div(lpSupply));
+            accXNINJAPerShare = accXNINJAPerShare.add(xninjaReward.mul(1e12).div(lpSupply));
         }
-        return user.amount.mul(accXninjaPerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(accXNINJAPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -150,20 +167,21 @@ contract MasterChef is Ownable {
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 xninjaReward = multiplier.mul(xninjaPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        xninja.mint(devaddr, xninjaReward.div(10));
         xninja.mint(address(this), xninjaReward);
-        pool.accXninjaPerShare = pool.accXninjaPerShare.add(xninjaReward.mul(1e12).div(lpSupply));
+        pool.accXNINJAPerShare = pool.accXNINJAPerShare.add(xninjaReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
 
     // Deposit LP tokens to MasterChef for XNINJA allocation.
-    function deposit(uint256 _pid, uint256 _amount) public {
+    function deposit(uint256 _pid, uint256 _amount) public nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accXninjaPerShare).div(1e12).sub(user.rewardDebt);
+            uint256 pending = user.amount.mul(pool.accXNINJAPerShare).div(1e12).sub(user.rewardDebt);
             if(pending > 0) {
-                safeXninjaTransfer(msg.sender, pending);
+                safeXNINJATransfer(msg.sender, pending);
             }
         }
         if(_amount > 0) {
@@ -176,30 +194,30 @@ contract MasterChef is Ownable {
                 user.amount = user.amount.add(_amount);
             }
         }
-        user.rewardDebt = user.amount.mul(pool.accXninjaPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accXNINJAPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
     // Withdraw LP tokens from MasterChef.
-    function withdraw(uint256 _pid, uint256 _amount) public {
+    function withdraw(uint256 _pid, uint256 _amount) public nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
-        uint256 pending = user.amount.mul(pool.accXninjaPerShare).div(1e12).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(pool.accXNINJAPerShare).div(1e12).sub(user.rewardDebt);
         if(pending > 0) {
-            safeXninjaTransfer(msg.sender, pending);
+            safeXNINJATransfer(msg.sender, pending);
         }
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accXninjaPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accXNINJAPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY.
-    function emergencyWithdraw(uint256 _pid) public {
+    function emergencyWithdraw(uint256 _pid) public nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         uint256 amount = user.amount;
@@ -210,23 +228,35 @@ contract MasterChef is Ownable {
     }
 
     // Safe xninja transfer function, just in case if rounding error causes pool to not have enough XNINJAs.
-    function safeXninjaTransfer(address _to, uint256 _amount) internal {
+    function safeXNINJATransfer(address _to, uint256 _amount) internal {
         uint256 xninjaBal = xninja.balanceOf(address(this));
+        bool transferSuccess = false;
         if (_amount > xninjaBal) {
-            xninja.transfer(_to, xninjaBal);
+            transferSuccess = xninja.transfer(_to, xninjaBal);
         } else {
-            xninja.transfer(_to, _amount);
+            transferSuccess = xninja.transfer(_to, _amount);
         }
+        require(transferSuccess, "safeXNINJATransfer: transfer failed");
+
     }
 
+    // Update dev address by the previous dev.
+    function dev(address _devaddr) public {
+        require(msg.sender == devaddr, "dev: wut?");
+        devaddr = _devaddr;
+        emit SetDevAddress(msg.sender, _devaddr);
+    }
 
-    function setFeeAddress(address _feeAddress) public onlyOwner {
+    function setFeeAddress(address _feeAddress) public {
+        require(msg.sender == feeAddress, "setFeeAddress: FORBIDDEN");
         feeAddress = _feeAddress;
+        emit SetFeeAddress(msg.sender, _feeAddress);
     }
 
     //Pancake has to add hidden dummy pools inorder to alter the emission, here we make it simple and transparent to all.
     function updateEmissionRate(uint256 _xninjaPerBlock) public onlyOwner {
         massUpdatePools();
         xninjaPerBlock = _xninjaPerBlock;
+        emit UpdateEmissionRate(msg.sender, _xninjaPerBlock);
     }
 }
