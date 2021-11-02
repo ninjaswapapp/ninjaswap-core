@@ -31,6 +31,7 @@
     "test-NinjaAMO": "truffle test ./test/NinjaAMO.js",
     "test-NinjaStarter": "truffle test ./test/NinjaStarter.js",
     "test-timelock": "truffle test ./test/timelock.js",
+    "test-NinjaAMOV2": "truffle test ./test/NinjaAMOV2.js",
     "NinjaPriceGrowth": "truffle test ./test/NinjaPriceGrowth.js",
     "build": "truffle compile",
     "deploy": "truffle migrate --network development --reset",
@@ -45,6 +46,8 @@
     "flat-NinjaAMO": "./node_modules/.bin/truffle-flattener ./contracts/NinjaAMO.sol > ./flat/NinjaAMO.sol",
     "flat-BondingCurve": "./node_modules/.bin/truffle-flattener ./contracts/BondingCurve/BondingCurve.sol > ./flat/BondingCurve.sol",
     "flat-MockERC20": "./node_modules/.bin/truffle-flattener ./contracts/MockERC20.sol > ./flat/MockERC20.sol",
-    "flat-NinjaStarter": "./node_modules/.bin/truffle-flattener ./contracts/NinjaStarter.sol > ./flat/NinjaStarter.sol"
+    "flat-NinjaStarter": "./node_modules/.bin/truffle-flattener ./contracts/NinjaStarter.sol > ./flat/NinjaStarter.sol",
+    "flat-NinjaAMOV2": "./node_modules/.bin/truffle-flattener ./contracts/NinjaAMOV2.sol > ./flat/NinjaAMOV2.sol",
+    "flat-Timelock": "./node_modules/.bin/truffle-flattener ./contracts/Timelock.sol > ./flat/Timelock.sol"
   }
 }

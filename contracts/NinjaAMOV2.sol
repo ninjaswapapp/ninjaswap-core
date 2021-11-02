@@ -30,26 +30,23 @@ contract NinjaAMOV2 is ReentrancyGuard, Ownable, Pausable {
     using SafeERC20 for IERC20;
     IStdReference internal ref;
 
-    //offering token
-    NinjaToken public offeringToken;
+    //AMO token
+    NinjaToken public ninjaToken;
 
     // BUSD Token
     IERC20 public BUSD;
 
-    // total amount of offeringToken that will offer
-    uint256 public offeringAmount = 4000 * 1e18;
+    // AMO token price in 2.5 BUSD
+    uint256 public mintPrice = 25 * 1e17;
 
-    // limit on each address on buy
-    uint256 public buyCap = 0;
+    // Max AMO mintable tokens 2.8 M
+    uint256 public maxMintable = 2800000 * 1e18;
 
-    // offering token price in BUSD
-    uint256 public buyPrice = 4 * 1e18;
-
-    // Time when the token sale closes
+    // AMOv2 stop permanently
     bool public isEnded = false;
 
-    // limit on each address on buy
-    uint256 public totalSold = 0;
+    // total tokens minted by amoV2
+    uint256 public TotalAMOV2Mints = 0;
 
     // Keeps track of BNB deposited
     uint256 public totalCollectedBNB = 0;
@@ -57,8 +54,11 @@ contract NinjaAMOV2 is ReentrancyGuard, Ownable, Pausable {
     // Keeps track of BUSD deposited
     uint256 public totalCollectedBUSD = 0;
 
-    //offering token owner address
-    address payable public tokenOwner;
+    //development funds Treasury
+    address payable public developmentTreasury;
+
+     //marketing funds Treasury
+    address payable public marketersTreasury;
 
     //ninjaswap fee collector address
     address payable public feeAddress;
@@ -66,7 +66,7 @@ contract NinjaAMOV2 is ReentrancyGuard, Ownable, Pausable {
     //Total sale participants
     uint256 public totalSaleParticipants;
 
-    //ninjaswap will charge this fee 1.5% max 10000 means 100%
+    //1.5% fee will be charged from all funds to buyback and burn ninja and  xninja
     uint16 public fee = 150;
 
     //Amount each user deposited BUSD
@@ -75,22 +75,23 @@ contract NinjaAMOV2 is ReentrancyGuard, Ownable, Pausable {
     //Amount each user deposited BNB
     mapping(address => uint256) public bnbDeposits;
 
-    //Amount of offering token bought each user
-    mapping(address => uint256) public purchases;
+    //Amount of minted tokens by each user
+    mapping(address => uint256) public Minted;
 
-    event purchased(address user, uint256 amount);
+    event Mint(address user, uint256 amount);
     
     constructor(
-        NinjaToken _offeringToken,
+        NinjaToken _ninjaToken,
         IERC20 _busd,
-        address payable _tokenOwner,
+        address payable _developmentTreasury,
+        address payable _marketersTreasury,
         address payable _feeAddress
     ) public {
-        offeringToken = _offeringToken;
+        ninjaToken = _ninjaToken;
         BUSD = _busd;
-        tokenOwner = _tokenOwner;
+        developmentTreasury = _developmentTreasury;
+        marketersTreasury = _marketersTreasury;
         feeAddress = _feeAddress;
-        //ref = IStdReference(0xDA7a001b254CD22e46d3eAB04d937489c93174C3);
         ref = IStdReference(0xDA7a001b254CD22e46d3eAB04d937489c93174C3);
     }
 
@@ -98,18 +99,18 @@ contract NinjaAMOV2 is ReentrancyGuard, Ownable, Pausable {
         if (isEnded) {
             revert();
         }
-        buywithBNB(msg.sender);
+        mintWithBNB(msg.sender);
     }
 
-    function buywithBNB(address _beneficiary) public payable whenNotPaused nonReentrant
+    function mintWithBNB(address _beneficiary) public payable whenNotPaused nonReentrant
     {
         uint256 bnbAmount = msg.value;
         require(bnbAmount > 0, "Please send some more BNB");
-        require(_preValidation(), "offering already finalized");
-        uint256 tokensToBePurchased = _getTokenAmount(bnbAmount);
-        tokensToBePurchased = _verifyAmount(tokensToBePurchased);
-        require(tokensToBePurchased > 0, "You've reached your limit of purchases");
-        uint256 cost = tokensToBePurchased.mul(buyPrice).div(getLatestBNBPrice());
+        require(_preValidation(), "AMO already finalized");
+        uint256 tokensToBeMint = _getTokenAmount(bnbAmount);
+        tokensToBeMint = _checkMaxMint(tokensToBeMint);
+        require(tokensToBeMint > 0, "You've reached your limit of purchases");
+        uint256 cost = tokensToBeMint.mul(mintPrice).div(getLatestBNBPrice());
         if (bnbAmount > cost) {
             address payable refundAccount = payable(_beneficiary);
 	        refundAccount.transfer(bnbAmount.sub(cost));
@@ -120,86 +121,69 @@ contract NinjaAMOV2 is ReentrancyGuard, Ownable, Pausable {
             totalSaleParticipants = totalSaleParticipants.add(1);
         }
         totalCollectedBNB = totalCollectedBNB.add(bnbAmount);
-        offeringToken.safeTransfer(address(msg.sender), tokensToBePurchased);
-        totalSold = totalSold.add(tokensToBePurchased);
+        ninjaToken.mint(address(msg.sender), tokensToBeMint);
+        uint256 _teamShare = tokensToBeMint.mul(15).div(100); // 0.15x 
+        ninjaToken.mint(address(this), _teamShare);
+        TotalAMOV2Mints = TotalAMOV2Mints.add(tokensToBeMint);
         bnbDeposits[msg.sender] = bnbDeposits[msg.sender].add(bnbAmount);
-        purchases[msg.sender] = purchases[msg.sender].add(tokensToBePurchased);
-        emit purchased(_beneficiary, tokensToBePurchased);
+        Minted[msg.sender] = Minted[msg.sender].add(tokensToBeMint);
+        emit Mint(_beneficiary, tokensToBeMint);
     }
 
-    function buyWithBusd(uint256 _amountBusd) public whenNotPaused nonReentrant {
+    function mintWithBUSD(uint256 _amountBusd) public whenNotPaused nonReentrant {
         require(_amountBusd > 0, "Please Send some more BUSD");
-        require(_preValidation(), "offering already finalized");
-        uint256 tokensToBePurchased = _amountBusd.mul(10**18).div(buyPrice);
-        tokensToBePurchased = _verifyAmount(tokensToBePurchased);
-        require(tokensToBePurchased > 0, "You've reached your limit of purchases");
-        uint256 totalBusd = tokensToBePurchased.mul(buyPrice).div(10**18);
+        require(_preValidation(), "AMO already finalized");
+        uint256 tokensToBeMint = _amountBusd.mul(10**18).div(mintPrice);
+        tokensToBeMint = _checkMaxMint(tokensToBeMint);
+        require(tokensToBeMint > 0, "You've reached your limit of purchases");
+        uint256 totalBusd = tokensToBeMint.mul(mintPrice).div(10**18);
         BUSD.safeTransferFrom(address(msg.sender), address(this), totalBusd);
         // Update total sale participants
         if (busdDeposits[msg.sender] == 0 && bnbDeposits[msg.sender] == 0) {
             totalSaleParticipants = totalSaleParticipants.add(1);
         }
-        offeringToken.safeTransfer(address(msg.sender), tokensToBePurchased);
-        totalSold = totalSold.add(tokensToBePurchased);
+        ninjaToken.mint(address(msg.sender), tokensToBeMint);
+        uint256 _teamShare = tokensToBeMint.mul(15).div(100); // 0.15x 
+        ninjaToken.mint(address(this), _teamShare);
+        TotalAMOV2Mints = TotalAMOV2Mints.add(tokensToBeMint);
         totalCollectedBUSD = totalCollectedBUSD.add(totalBusd);
         busdDeposits[msg.sender] = busdDeposits[msg.sender].add(totalBusd);
-        purchases[msg.sender] = purchases[msg.sender].add(tokensToBePurchased);
-        emit purchased(msg.sender, tokensToBePurchased);
+        Minted[msg.sender] = Minted[msg.sender].add(tokensToBeMint);
+        emit Mint(msg.sender, tokensToBeMint);
     }
 
-    function getEstimatedTokensBuyWithBNB(uint256 _bnbAmount)
-        public
-        view
-        returns (uint256)
-    {
-        return _bnbAmount.mul(getLatestBNBPrice()).div(buyPrice);
+    function _checkMaxMint(uint256 _tokensAmount) internal view returns (uint256) {
+        uint256 canBeMint = _tokensAmount;
+        uint256 _teamShare = canBeMint.mul(15).div(100); // 0.15x 
+        uint256 amoTotalminted = ninjaToken.AMOMinted();
+        if (amoTotalminted.add(canBeMint.add(_teamShare)) > maxMintable) { // Only amo minted allowed 2.8 million
+            canBeMint =  maxMintable.sub(amoTotalminted);
+            canBeMint = canBeMint.mul(100).div(115); // 0.15x 
+        }
+        return canBeMint;
     }
 
+    function getEstimatedTokensMintWithBNB(uint256 _bnbAmount) public view returns (uint256) {
+        return _bnbAmount.mul(getLatestBNBPrice()).div(mintPrice);
+    }
+    
     function _preValidation() internal view returns (bool) {
-        // offering should not endeded
         bool a = !isEnded;
 
-        // should have available offering tokens
-        bool b = offeringToken.balanceOf(address(this)) > 0;
-
-        bool c = msg.sender != address(0);
-        return a && b && c;
+        bool b = msg.sender != address(0);
+        return a && b;
     }
 
-    function endOffering() public onlyOwner {
-        require(!isEnded, "offering already finalized");
-        uint256 balance = offeringToken.balanceOf(address(this));
-        if (balance > 0) {
-            offeringToken.safeTransfer(tokenOwner, balance);
-        }
+    function endAMO() public onlyOwner {
+        require(!isEnded, "AMO already finalized");
         isEnded = true;
     }
-
     function _getTokenAmount(uint256 _bnbAmount)
         internal
         view
         returns (uint256)
     {
-        return _bnbAmount.mul(getLatestBNBPrice()).div(buyPrice);
-    }
-
-    function _verifyAmount(uint256 _tokensAmount)
-        internal
-        view
-        returns (uint256)
-    {
-        uint256 canBeBought = _tokensAmount;
-        if (buyCap > 0 && canBeBought.add(purchases[msg.sender]) > buyCap) {
-            canBeBought = buyCap.sub(purchases[msg.sender]);
-        }
-        if (canBeBought > offeringToken.balanceOf(address(this))) {
-            canBeBought = offeringToken.balanceOf(address(this));
-        }
-        return canBeBought;
-    }
-
-    function setOfferingAmount(uint256 _offerAmount) public onlyOwner {
-        offeringAmount = _offerAmount;
+        return _bnbAmount.mul(getLatestBNBPrice()).div(mintPrice);
     }
 
     function getLatestBNBPrice() public view returns (uint256) {
@@ -210,41 +194,65 @@ contract NinjaAMOV2 is ReentrancyGuard, Ownable, Pausable {
         return data.rate;
     }
 
-    function setBuyCap(uint256 _buyCap) public onlyOwner {
-        buyCap = _buyCap;
-    }
-
     function setFee(uint16 _fee) public onlyOwner {
-        require(_fee <= 10000, "invalid fee basis points");
+        require(_fee <= 1000, "invalid fee basis points"); // max 10%
         fee = _fee;
     }
 
-    function setPrice(uint256 _buyPrice) public onlyOwner {
-        buyPrice = _buyPrice;
+    function setMintPrice(uint256 _mintPrice) public onlyOwner {
+        mintPrice = _mintPrice;
     }
 
-    function finalWithdraw() public onlyOwner {
+    function withdrawFunds() public onlyOwner {
         uint256 bnbBalance = address(this).balance;
         uint256 busdBalance = BUSD.balanceOf(address(this));
         if (busdBalance > 0) {
             uint256 busdFee = busdBalance.mul(fee).div(10000);
             busdBalance = busdBalance.sub(busdFee);
+            // split busd balance into halves
+            uint256 half      = busdBalance.div(2);
+            uint256 otherHalf = busdBalance.sub(half);
             BUSD.safeTransfer(feeAddress, busdFee);
-            BUSD.safeTransfer(tokenOwner, busdBalance);
+            BUSD.safeTransfer(developmentTreasury, half);
+            BUSD.safeTransfer(marketersTreasury, otherHalf);
         }
-        if (bnbBalance > 0) {
+          if (bnbBalance > 0) {
             uint256 bnbFee = bnbBalance.mul(fee).div(10000);
             bnbBalance = bnbBalance.sub(bnbFee);
+            // split BNB balance into halves
+            uint256 half      = bnbBalance.div(2);
+            uint256 otherHalf = bnbBalance.sub(half);
             feeAddress.transfer(bnbFee);
-            tokenOwner.transfer(bnbBalance);
+            developmentTreasury.transfer(half);
+            marketersTreasury.transfer(otherHalf);
         }
+    
+    //Withdraw team tokens with timelock
+    function withdrawTeamTokens(address _to, uint256 _amount) public onlyOwner {
+       ninjaToken.transferFrom(address(this), _to, _amount);
     }
 
-    //recover stuck tokens in case someone transfer fund in accident
-    function recoverStuckTokens(IERC20 _token, uint256 _amount)
-        public
-        onlyOwner
-    {
-        IERC20(_token).safeTransfer(msg.sender, _amount);
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    function updateDevelopmentTreasuryAdd(address payable _developmentTreasury) public onlyOwner {
+        developmentTreasury = _developmentTreasury;
+    }
+
+    function updateMarketersTreasury(address payable _marketersTreasury) public onlyOwner {
+        marketersTreasury = _marketersTreasury;
+    }
+
+    function TotalLockedTeamTokens() public view returns (uint256) {
+        return ninjaToken.balanceOf(address(this));
+    }
+    
+    function totalAMOTokens() public view returns (uint256) {
+        return ninjaToken.AMOMinted();
     }
 }

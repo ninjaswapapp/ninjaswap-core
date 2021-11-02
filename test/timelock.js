@@ -21,12 +21,19 @@ contract('Timelock', ([deployer, alice, bob, carol, governor]) => {
     this.ninjaMaster = await XNinjaMaster.new(this.token.address, deployer, deployer, '30000000000000000', currentBlock)
     this.timelock = await Timelock.new(172800) // timelock with delay of 2 day
     await this.ninjaMaster.transferOwnership(this.timelock.address)
-
+    await this.token.replaceMinter(this.timelock.address)
     this.queueParams = [
       this.ninjaMaster.address,
       0,
       'updateEmissionRate(uint256)',
       ethers.utils.defaultAbiCoder.encode(['uint256'], ['100000000']),
+      currentTime + 172900
+    ]
+    this.queueMintParams = [
+      this.token.address,
+      0,
+      'mint(address,uint256)',
+      ethers.utils.defaultAbiCoder.encode(['address','uint256'], [alice ,'500000000000000000000']),
       currentTime + 172900
     ]
   })
@@ -40,7 +47,6 @@ contract('Timelock', ([deployer, alice, bob, carol, governor]) => {
       expect((await this.ninjaMaster.xninjaPerBlock()).toString()).to.be.eq('30000000000000000')
     })
   })
-
   describe('executeTransaction', () => {
     it('should allow to execute a queued transaction after the delay', async () => {
       await this.timelock.queueTransaction(...this.queueParams)
@@ -65,6 +71,15 @@ contract('Timelock', ([deployer, alice, bob, carol, governor]) => {
       expect(await this.timelock.queuedTransactions(txHash)).to.be.eq(true)
       await this.timelock.cancelTransaction(...this.queueParams)
       expect(await this.timelock.queuedTransactions(txHash)).to.be.eq(false)
+    })
+  })
+  describe('executeMintTransaction', () => {
+    it('should allow to execute a mint queued transaction after the delay', async () => {
+      await this.timelock.queueTransaction(...this.queueMintParams)
+      expect((await this.token.balanceOf(alice)).toString()).to.be.eq('0')
+      await time.increase(time.duration.days(3))
+      await this.timelock.executeTransaction(...this.queueMintParams)
+      expect((await this.token.balanceOf(alice)).toString()).to.be.eq('500000000000000000000')
     })
   })
 })
