@@ -226,7 +226,7 @@ contract NinjaAMOV2 is ReentrancyGuard, Ownable, Pausable {
             developmentTreasury.transfer(half);
             marketersTreasury.transfer(otherHalf);
         }
-    
+    }
     //Withdraw team tokens with timelock
     function withdrawTeamTokens(address _to, uint256 _amount) public onlyOwner {
        ninjaToken.transferFrom(address(this), _to, _amount);
