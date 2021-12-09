@@ -51,7 +51,7 @@ contract XNinjaMaster is Ownable, ReentrancyGuard , Pausable {
     XNinjaSwap public XNINJA;
 
     // XNINJA tokens created per block.
-    uint256 public xninjaPerBlock = 100000000000000000; //0.1 xninja
+    uint256 public xninjaPerBlock = 100000000000000; //0.0001 xninja
     // Bonus multiplier for early xninja makers.
     uint256 public constant BONUS_MULTIPLIER = 1;
 
@@ -73,7 +73,8 @@ contract XNinjaMaster is Ownable, ReentrancyGuard , Pausable {
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event Harvest(address indexed user, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
-    event UpdateEmissionRate(address indexed user, uint256 goosePerBlock);
+    event UpdateEmissionRate(address indexed user, uint256 xninjaPerBlock);
+
 
     constructor(
         XNinjaSwap _xninja
@@ -262,9 +263,5 @@ contract XNinjaMaster is Ownable, ReentrancyGuard , Pausable {
 
     function unpause() public onlyOwner {
         _unpause();
-    }
-    function rescueToken(address token, address addressForReceive) external onlyOwner {
-        uint256 balance = IBEP20(token).balanceOf(address(this));
-        IBEP20(token).safeTransfer(addressForReceive, balance);
     }
 }
