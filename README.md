@@ -21,6 +21,7 @@ Feel free to read the code.
 - XNinjaSwap - https://bscscan.com/address/0xe63969620aac596f68aee7fa1d795026bf27ff18
 - Timelock - https://bscscan.com/address/0x2c21eb944a9615e757b58c3b26f2cedbebdb65be
 - XNinjaMaster - https://www.bscscan.com/address/0x4Dbb8A19FacB2877059078f24ddAad74a203D4C5
+- NinjaLocker - https://www.bscscan.com/address/0x513da0a749d58398f104b732ead7a3441506aa36
 
 
 ## [BSC Chain] Disabled Contracts
