@@ -1043,20 +1043,20 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
     // BUSD Token
     IBEP20 public BUSD = IBEP20(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56);
 
-    address public masterchef = address(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56);
+    address public xNinjaMaster = address(0x4Dbb8A19FacB2877059078f24ddAad74a203D4C5);
 
 
     // total amount of offeringToken that will offer
-    uint256 public offeringAmount = 1000000 * 1e18;
+    uint256 public offeringAmount = 125000 * 1e18;
 
     // IDO starting date
-    uint256 public startDate = 1625716800; // July 8, 2021 01:00:00 AM UTC
+    uint256 public startDate = 1625716800; 
 
     // limit on each address on buy
     uint256 public buyCap = 0;
 
     // offering token price in BUSD
-    uint256 public buyPrice = 50000000000000000;
+    uint256 public buyPrice = 800000000000000000;
 
     // Time when the token sale closes
     bool public isEnded = false;
@@ -1067,11 +1067,8 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
     //Vesting rounds
     uint256 public vestingRounds = 4;
 
-    //Vesting period 2592000 = 1 month, 604800 = 1 week
-    uint256 public vestingPeriod = 2592000;
-
-    //Vesting Release Percentage on each round
-    uint256 public vestingReleasePer = 20;
+    //Vesting period 2629743 = 1 month, 604800 = 1 week
+    uint256 public vestingPeriod = 2629743;
 
     // Vesting whitelist validation enabled or not
     bool public whitelistChecker = true;
@@ -1091,23 +1088,27 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
     address payable public tokenOwner;
 
     //ninjaswap fee collector address
-    address payable public feeAddress =
-        0x2e7B98107bdA888d0700Da385b1525B26Cc795Cc;
+    address payable public feeAddress = 0x2e7B98107bdA888d0700Da385b1525B26Cc795Cc;
+
+    //ninjaswap liqudity address
+    address payable public liqudityManager = 0xB1f652a4130792cbD9ef1d42384Fc4124E690B1b;
 
     //Total sale participants
     uint256 public totalSaleParticipants;
 
     //ninjaswap will charge this fee 3% and max can be 5%
-    uint256 public fee = 3;
+    uint256 public ninjaFee = 3;
 
     //locked liquidity %
-    uint256 public Liqfee = 40;
+    uint256 public liquidityInPercentage = 60;
+
+    uint256 private vestingId = 0;
 
     struct Vesting {
-        uint256 releasetime;
+        uint256 vestingId;
+        uint256 releaseTime;
         uint256 amount;
-        bool immediateRelease;
-        bool claimed;
+        bool released;
     }
     mapping(address => Vesting[]) public vestings;
 
@@ -1123,6 +1124,9 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
     mapping(address => bool) internal authorizations;
 
     event purchased(address user, uint256 amount);
+    event TokenVestingReleased(uint256 indexed vestingId, address indexed beneficiary, uint256 amount);
+    event TokenVestingAdded(uint256 indexed vestingId, address indexed beneficiary, uint256 amount);
+    event TokenVestingRemoved(uint256 indexed vestingId, address indexed beneficiary, uint256 amount);
 
     constructor(IBEP20 _offeringToken, address payable _tokenOwner) public {
         offeringToken = _offeringToken;
@@ -1136,10 +1140,10 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
         if (isEnded) {
             revert();
         }
-        buywithBNB(msg.sender);
+        buyWithBNB(msg.sender);
     }
 
-    function buywithBNB(address _beneficiary)
+    function buyWithBNB(address _beneficiary)
         public
         payable
         whenNotPaused
@@ -1258,44 +1262,63 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
         uint256 unlockedTokensEveryRound = amount.div(vestingRounds);
         for (uint round = 1; round <= vestingRounds; round++) {
             uint256 releaseTime = block.timestamp + vestingPeriod * round;
-            vestings[beneficiary].push(Vesting(releaseTime, unlockedTokensEveryRound, false, false));
+            vestingId = vestingId.add(1);
+            vestings[beneficiary].push( Vesting({
+            vestingId: vestingId,
+            releaseTime: releaseTime,
+            amount: unlockedTokensEveryRound,
+            released: false
+        }));
+        emit TokenVestingAdded(vestingId, beneficiary, unlockedTokensEveryRound);
         }
-        // if (vestingRounds == 1) {
-        //     vestingInfo.push(
-        //         VestingInfo({
-        //             user: beneficiary,
-        //             lockTime: 0,
-        //             amount: amount,
-        //             claimed: false,
-        //             immediateRelease: true
-        //         })
-        //     );
-        // } 
-        // else {
-        //     uint256 tempPer = vestingReleasePer;
-        //     uint256 _now = _timestamp();
-        //     uint256 tempPeriod = _now.add(vestingPeriod);
-        //     uint256 _amount = amount.mul(vestingReleasePer).div(100);
-        //     while (tempPer > 100) {
-        //         vestingInfo.push(
-        //             VestingInfo({
-        //                 user: beneficiary,
-        //                 lockTime: tempPeriod,
-        //                 amount: _amount,
-        //                 claimed: false,
-        //                 immediateRelease: false
-        //             })
-        //         );
-        //         tempPer = tempPer.add(vestingReleasePer);
-        //         tempPeriod = tempPeriod.add(vestingPeriod);
-        //     }
-        // }
-        // offeringToken.safeTransfer(address(msg.sender), tokensToBePurchased);
         purchases[beneficiary] = purchases[beneficiary].add(amount);
         totalSold = totalSold.add(amount);
         emit purchased(beneficiary, amount);
     }
-
+    //<================= vestings functions ==============================================>
+      function myVestings(address _address) external view returns  (Vesting[] memory) {
+        return vestings[_address];
+    }
+    function myTokens() public view  returns(uint256 total, uint256 claimed, uint256 available, uint256 unclaimed){
+        Vesting[] memory _vestings = vestings[msg.sender];
+        for(uint256 i=0; i<_vestings.length; i++){
+            total = total.add(_vestings[i].amount);
+            if(_vestings[i].released)
+                claimed = claimed.add(_vestings[i].amount);
+            else {
+                if(_vestings[i].releaseTime <= block.timestamp)
+                    available = available.add(_vestings[i].amount);
+                
+                unclaimed = unclaimed.add(_vestings[i].amount);
+            }
+        }
+    }
+     function myNextRelease()  external view returns(Vesting memory vesting){
+        Vesting[] memory _vestings = vestings[msg.sender];
+        uint256 nextRelease = 0;
+        uint256 index = 0;
+        for(uint256 i=0; i<_vestings.length; i++){
+           if(!_vestings[i].released && (nextRelease == 0 || _vestings[i].releaseTime < nextRelease) && _vestings[i].releaseTime >= block.timestamp){
+               nextRelease = _vestings[i].releaseTime;
+               index =  i;
+           }
+        }
+        
+        if(nextRelease > 0 ) vesting =  _vestings[index];
+    }
+    function releaseAll() external {
+        Vesting[] storage _vestings  = vestings[msg.sender];
+        (,,uint256 available,) = myTokens();
+        require(available > 0,  'No token available to claim');
+        
+        for(uint256  i  = 0; i < _vestings.length; i++){
+            if(!_vestings[i].released && _vestings[i].releaseTime <= block.timestamp){
+                _vestings[i].released  = true;
+            }
+        } 
+        offeringToken.safeTransfer(address(msg.sender), available);
+        emit TokenVestingReleased(0, msg.sender, available);
+    }
     // <================================ ADMINS FUNCTIONS ================================>
 
     //Function modifier to require caller to be authorized
@@ -1332,71 +1355,71 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
         uint256 _offerAmount,
         uint256 _buyCap,
         uint256 _buyPrice,
-        uint16 _fee
+        uint256 _ninjaFee,
+        uint256 _liquidityInPercentage
     ) public onlyOwner {
-        require(_fee <= 5, "invalid fee basis points"); // max 5%
+        require(_ninjaFee <= 5, "invalid fee basis points"); // max 5%
         offeringAmount = _offerAmount;
         startDate = _startDate;
         buyCap = _buyCap;
         buyPrice = _buyPrice;
-        fee = _fee;
+        ninjaFee = _ninjaFee;
+        liquidityInPercentage = _liquidityInPercentage;
     }
 
     function setVestingSettings(
         bool _isVesting,
         uint256 _vestingRounds,
-        uint256 _vestingPeriod,
-        uint16 _vestingReleasePer
+        uint256 _vestingPeriod
     ) public onlyOwner {
         isVesting = _isVesting;
         vestingRounds = _vestingRounds;
         vestingPeriod = _vestingPeriod;
-        vestingReleasePer = _vestingReleasePer;
     }
 
-    function setWhitelistChecker(bool _whitelistChecker) public onlyOwner {
+    function setWhitelistSettings(bool _whitelistChecker , uint256 _NinjaStakingBalanceRequired) public onlyOwner {
         whitelistChecker = _whitelistChecker;
+        NinjaStakingBalanceRequired = _NinjaStakingBalanceRequired;
     }
 
     function setTokenOwner(address payable _tokenOwner) external authorized {
         tokenOwner = _tokenOwner;
     }
 
-    function setFeeAndMasterAndBUSDAddress(address payable _feeAddress, IBEP20 _busd , address _masterchef)
+    function setIDoAddresses(address payable _feeAddress, IBEP20 _busd , address _xNinjaMaster, address payable _liqudityManager)
         external
         onlyOwner
     {
         feeAddress = _feeAddress;
         BUSD = _busd;
-        masterchef = address(_masterchef);
+        xNinjaMaster = address(_xNinjaMaster);
+        liqudityManager = _liqudityManager;
     }
 
     function WithdrawFunds() public onlyOwner {
         uint256 bnbBalance = address(this).balance;
         uint256 busdBalance = BUSD.balanceOf(address(this));
         if (busdBalance > 0) {
-            uint256 busdFee = busdBalance.mul(fee).div(100);
-            busdBalance = busdBalance.sub(busdFee);
+            uint256 busdFee = busdBalance.mul(ninjaFee).div(100);
+            uint256 busdLiqudity = busdBalance.mul(liquidityInPercentage).div(100);
+            busdBalance = busdBalance.sub(busdFee).sub(busdLiqudity);
             BUSD.safeTransfer(feeAddress, busdFee);
+            BUSD.safeTransfer(liqudityManager, busdLiqudity);
             BUSD.safeTransfer(tokenOwner, busdBalance);
         }
         if (bnbBalance > 0) {
-            uint256 bnbFee = bnbBalance.mul(fee).div(100);
-            bnbBalance = bnbBalance.sub(bnbFee);
+            uint256 bnbFee = bnbBalance.mul(ninjaFee).div(100);
+            uint256 bnbLiqudity = bnbBalance.mul(liquidityInPercentage).div(100);
+            bnbBalance = bnbBalance.sub(bnbFee).sub(bnbLiqudity);
             feeAddress.transfer(bnbFee);
+            liqudityManager.transfer(bnbLiqudity);
             tokenOwner.transfer(bnbBalance);
         }
     }
-
-    function _timestamp() internal view returns (uint256) {
-        return block.timestamp;
-    }
     function isWhitelisted(address _address) public view returns (bool) {
           uint256 poolId = 0;
-        (uint256 _deposited , ,) = IMasterChef(masterchef).userInfo(poolId, _address);
+        (uint256 _deposited , ,) = IMasterChef(xNinjaMaster).userInfo(poolId, _address);
         return _deposited >= (NinjaStakingBalanceRequired *(10**18)) ? true : false;
     }
-    function myVestings(address _address) external view returns  (Vesting[] memory) {
-        return vestings[_address];
-    }
+  
 }

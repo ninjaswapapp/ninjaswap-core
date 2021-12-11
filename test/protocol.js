@@ -69,8 +69,8 @@ contract('NinjaStarter', (accounts) => {
         { from: Owner },
       )
       xninjaSwap =  await XNinjaSwap.new({from: xninjaOwner})
-      xninjaMaster = await XNinjaMaster.new(xninjaSwap.address , toWei('1') , { from: Owner });
-      await ninjaStarter.setFeeAndMasterAndBUSDAddress(feeAddress,busd.address ,xninjaMaster.address , { from: Owner })
+      xninjaMaster = await XNinjaMaster.new(xninjaSwap.address , { from: Owner });
+      await ninjaStarter.setIDoAddresses(feeAddress,busd.address ,xninjaMaster.address , feeAddress ,{ from: Owner })
       await xninjaSwap.replaceMasterChef(xninjaMaster.address , {from : xninjaOwner});
       await xninjaMaster.add('1500' , ffToken.address , '604800',true , {from : Owner});
       await ffToken.transfer(ninjaStarter.address,  toWei('70000'), {
@@ -80,25 +80,11 @@ contract('NinjaStarter', (accounts) => {
       await ffToken.approve(xninjaMaster.address, constants.MaxUint256, {
         from: ffOwner,
       })
-     
+      await xninjaMaster.deposit('0' , toWei('200'),{from : ffOwner});
     })
   
     
     it('ninjaStarter should intial correctly', async () => {
-      await xninjaMaster.deposit('0' , toWei('100'),{from : ffOwner});
-      var data = await xninjaMaster.pendingXNINJA.call('0' ,ffOwner);
-      await advanceBlocks(40)
-      await xninjaMaster.deposit('0' , toWei('100'),{from : ffOwner});
-      await advanceBlocks(20)
-      var data2 = await  xninjaMaster.userInfo.call('0' ,ffOwner);
-      var data3 = await  xninjaMaster.poolInfo.call('0');
-      var balance = (await ffToken.balanceOf.call(xninjaMaster.address)).toString();
-      console.log("balance : " + JSON.stringify(balance));
-      console.log("data3 : " + JSON.stringify(data3));
-      console.log("data2 : " + JSON.stringify(data2));
-      console.log("data2 : " + JSON.stringify(data2.amount.toString()));
-      console.log("pendingXNINJA : " + JSON.stringify(data));
-
       expect((await ninjaStarter.offeringToken()).toString()).to.be.equal(ffToken.address.toString())
       expect((await ninjaStarter.BUSD()).toString()).to.be.equal(
         busd.address.toString()
@@ -109,29 +95,13 @@ contract('NinjaStarter', (accounts) => {
       await busd.approve(ninjaStarter.address, constants.MaxUint256, {
         from: ffOwner,
       })
-      await ninjaStarter.buyWithBusd(toWei('40'), { from: ffOwner })
+      await ninjaStarter.buyWithBusd(toWei('160'), { from: ffOwner })
       var deposit = await ninjaStarter.busdDeposits.call(ffOwner)
-      expect(deposit.toString()).to.be.equal(toWei('40').toString())
+      expect(deposit.toString()).to.be.equal(toWei('160').toString())
       expect((await ninjaStarter.totalSaleParticipants()).toString()).to.be.equal(
         '1',
       )
     })
-    it('Buy 10 offering tokens with 40 BUSD', async () => {
-      await busd.approve(ninjaStarter.address, constants.MaxUint256, {
-        from: ffOwner,
-      })
-      await ninjaStarter.buyWithBusd(toWei('40'), { from: ffOwner })
-      var deposit = await ninjaStarter.busdDeposits.call(ffOwner)
-      // console.log("length : " + (await ninjaStarter.vestingLength()).toString());
-      var data =  await ninjaStarter.vestings.call(ffOwner ,'0');
-      console.log("vestings : " + JSON.stringify(data));
-      console.log("vestings : " + data.releasetime.toString());
-      expect(deposit.toString()).to.be.equal(toWei('80').toString())
-      expect((await ninjaStarter.totalSaleParticipants()).toString()).to.be.equal(
-        '1',
-      )
-    })
-
     it('withdraw from xmasterchef should be reject', async () => {
       var vestings = await  ninjaStarter.myVestings.call(ffOwner);
       console.log("vestings : " + JSON.stringify(vestings));
@@ -142,4 +112,14 @@ contract('NinjaStarter', (accounts) => {
       )
     })
 
+    // it('withdraw all vestings afer 4 months', async () => {
+    //   // await time.increase(time.duration.weeks(20))
+    //   await  ninjaStarter.WithdrawFunds({from : Owner});
+    //   var withdraw = await  ninjaStarter.releaseAll({from : ffOwner});
+    //   console.log("vestings : " + JSON.stringify(withdraw));
+    //   await expectRevert(
+    //     xninjaMaster.withdraw('0',toWei('100'), { from: ffOwner }),
+    //     'withdraw: lock time not reach',
+    //   )
+    // })
   })
