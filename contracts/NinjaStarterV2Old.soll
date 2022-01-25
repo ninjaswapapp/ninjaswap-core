@@ -1050,7 +1050,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
     uint256 public offeringAmount = 125000 * 1e18;
 
     // IDO starting date
-    uint256 public startDate = 1625716800; 
+    uint256 public startDate = 1639203729; 
 
     // limit on each address on buy
     uint256 public buyCap = 0;
@@ -1073,7 +1073,7 @@ contract NinjaStarter is ReentrancyGuard, Ownable, Pausable {
     // Vesting whitelist validation enabled or not
     bool public whitelistChecker = true;
 
-    uint256 public NinjaStakingBalanceRequired = 200;
+    uint256 public NinjaStakingBalanceRequired = 100;
 
     // limit on each address on buy
     uint256 public totalSold = 0;
