@@ -7,8 +7,9 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract NinjaBountyAirdropBank  is Context, Pausable, ReentrancyGuard {
+contract NinjaBountyAirdropBank  is Ownable , Pausable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -37,7 +38,6 @@ contract NinjaBountyAirdropBank  is Context, Pausable, ReentrancyGuard {
 
     ) public {
         authenticator = _authenticator;
-        token = IERC20(_token);
         Round storage r = rounds.push();
         r.roundId= currentRoundId;
         r.name= "NinjaSwap Round # 2";
@@ -48,6 +48,7 @@ contract NinjaBountyAirdropBank  is Context, Pausable, ReentrancyGuard {
 
     function addNewRound(uint256 _totalReward , string memory _name , address _token) public onlyOwner {
         currentRoundId = currentRoundId.add(1);
+        Round storage r = rounds.push();
         r.roundId= currentRoundId;
         r.name= _name;
         r.token= IERC20(_token);
