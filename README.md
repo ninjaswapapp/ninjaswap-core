@@ -12,7 +12,7 @@ Feel free to read the code.
 
 
 - NinjaToken - https://www.bscscan.com/address/0x93e7567f277F353d241973d6f85b5feA1dD84C10
-- NinjaAMOv2 (Active) - https://www.bscscan.com/address/0x2463B2ac7165C36CD3471023F93E59d4D5e3E8e0
+- NinjaAMOv3  - https://www.bscscan.com/address/0xB3C652D7e69763C7bC5190c9b360bA5F2e57d3A6
 - NinjaFactory - https://www.bscscan.com/address/0x3C60E7647D1972eF56a81Fd618b65E6A3e6bF799
 - NinjaRouter - https://www.bscscan.com/address/0x008Ea4e222B932D29171fD0E79c7430Bca37454e
 - NinjaBounty - https://www.bscscan.com/address/0xFA141BDe480D23fC8ebBe2B72621506499815067
@@ -29,3 +29,4 @@ Feel free to read the code.
 
 - NinjaTeam - https://www.bscscan.com/address/0xDE80c9B965511ABc839824FFb04d8E843d54D7cb
 - NinjaAMO (Disabled) - https://www.bscscan.com/address/0xdeDD7a0f96a8d89B5336c66fCdFB29aa885F6aC3
+- NinjaAMOv2 (Disabled) - https://www.bscscan.com/address/0x2463B2ac7165C36CD3471023F93E59d4D5e3E8e0

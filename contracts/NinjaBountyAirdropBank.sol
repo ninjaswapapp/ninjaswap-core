@@ -25,7 +25,6 @@ contract NinjaBountyAirdropBank  is Ownable , Pausable, ReentrancyGuard {
         uint256 TotalReward; // total tokens for round
         uint256 TotalRewardClaimed; // total users rewards claimed 
     }
-
      // all rounds
     Round[] public rounds;
    
@@ -145,5 +144,24 @@ contract NinjaBountyAirdropBank  is Ownable , Pausable, ReentrancyGuard {
             v += 27;
         }
         return (v, r, s);
+    }
+    function getRoundById(uint256 _roundId)
+        public
+        view
+        returns (
+            uint256,
+            string memory,
+            address,
+            uint256,
+            uint256
+        )
+    {
+           return (
+            rounds[_roundId].roundId,
+            rounds[_roundId].name,
+            address(rounds[_roundId].token),
+            rounds[_roundId].TotalReward,
+            rounds[_roundId].TotalRewardClaimed
+        );
     }
 }
