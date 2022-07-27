@@ -7,6 +7,10 @@ The first project launching via Novel AMO (Automatic Minting Offering )
 
 
 Feel free to read the code.
+## [Phoenix Chain] Deployed Contracts
+- NinjaToken - https://phoenixplorer.com/token/0xFA141BDe480D23fC8ebBe2B72621506499815067
+- NinjaFactory - https://phoenixplorer.com/address/0x3C60E7647D1972eF56a81Fd618b65E6A3e6bF799
+- NinjaRouter - https://phoenixplorer.com/address/0x008Ea4e222B932D29171fD0E79c7430Bca37454e
 
 ## [BSC Chain] Deployed Contracts
 
